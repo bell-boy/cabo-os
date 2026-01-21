@@ -1,16 +1,9 @@
 [package]
 name = "cabo-os"
-version = "0.1.0"
-authors = ["Andre Richter <andre.o.richter@gmail.com>"]
-edition = "2021"
+authors = ["Matthew Builes, Lucas Hollinger, Joshua Bello"]
 
 [profile.release]
 lto = true
-
-[features]
-default = []
-bsp_rpi3 = []
-bsp_rpi4 = []
 
 [[bin]]
 name = "kernel"
