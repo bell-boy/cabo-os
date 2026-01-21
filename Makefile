@@ -5,8 +5,9 @@ TARGET             := aarch64-unknown-none-softfloat
 KERNEL_BIN         := kernel8.img
 QEMU_BINARY        := qemu-system-aarch64
 QEMU_MACHINE_TYPE  := raspi3b
-QEMU_RELEASE_ARGS  := -d in_asm
 LD_SCRIPT_PATH     := .
+QEMU_RELEASE_ARGS  := -serial stdio -display none
+# QEMU_RELEASE_ARGS  := -d in_asm
 RUSTC_MISC_ARGS    := -C target-cpu=cortex-a53
 
 export LD_SCRIPT_PATH
@@ -37,7 +38,7 @@ $(KERNEL_BIN): $(KERNEL_ELF)
 	@$(OBJCOPY_CMD) $(KERNEL_ELF) $(KERNEL_BIN)
 
 qemu: $(KERNEL_BIN)
-	@$(QEMU_BINARY) -M $(QEMU_MACHINE_TYPE) $(QEMU_RELEASE_ARGS) -kernel $(KERNEL_BIN)
+	@$(QEMU_BINARY) -M $(QEMU_MACHINE_TYPE) $(QEMU_RELEASE_ARGS) -kernel $(KERNEL_BIN) 
 
 clean:
 	rm -rf target $(KERNEL_BIN)
