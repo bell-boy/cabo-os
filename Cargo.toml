@@ -1,9 +1,15 @@
 [package]
 name = "cabo-os"
+version = "0.1.0"
 authors = ["Matthew Builes, Lucas Hollinger, Joshua Bello"]
+edition = "2024"
 
 [profile.release]
 lto = true
+
+[features]
+default = []
+bsp_rpi3 = []
 
 [[bin]]
 name = "kernel"
