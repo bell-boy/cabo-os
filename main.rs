@@ -13,7 +13,7 @@ global_asm!(include_str!("boot.S"));
 so it can be called from assembly in boot.S */
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn kmain() -> () {
-    uart::init();
+    uart::init_uart_pl011_rpi3();
     let string: &str = "Hello World!";
     write_str(string);
 }
