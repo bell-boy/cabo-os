@@ -1,53 +1,104 @@
-// SPDX-License-Identifier: MIT OR Apache-2.0
-//
-// Copyright (c) 2021-2023 Andre Richter <andre.o.richter@gmail.com>
-
-//--------------------------------------------------------------------------------------------------
-// Public Code
-//--------------------------------------------------------------------------------------------------
-// - https://sourceware.org/binutils/docs-2.36/as/AArch64_002dRelocations.html
-.macro ADR_REL register, symbol
-	adrp	\register, \symbol
-	add	\register, \register, #:lo12:\symbol
-.endm
-
 .section .text._start
+.global _start
+.type _start, %function
 
-//------------------------------------------------------------------------------
-// fn _start()
-//------------------------------------------------------------------------------
+/* -------------------------------------------------------
+   Constants
+------------------------------------------------------- */
+
+.equ CPUINFO_SIZE,        32
+.equ CPUINFO_READY_OFF,    0
+.equ CPUINFO_GOTO_OFF,     8
+.equ CPUINFO_SP_OFF,      16
+
+/* -------------------------------------------------------
+   Entry
+------------------------------------------------------- */
+
 _start:
-	mrs	x0, MPIDR_EL1
-	//extract cpu/core number, half if it's not zero
-	and	x0, x0, #0xFF
-	cmp	xzr, x0
-	b.ne _halt
 
-	// If execution reaches here, it is the boot core.
+    // Get core id from MPIDR_EL1
+    mrs     x0, MPIDR_EL1
+    and     x0, x0, #0xFF          // Aff0 = core id
+    mov     x2, x0                 // save core_id
 
-	// Initialize DRAM.
-	ADR_REL	x0, __bss_start
-	ADR_REL x1, __bss_end_exclusive
+    // If not boot core, go to mailbox wait
+    cbnz    x0, secondary_wait
 
-// initialize bss to zero
-_init_bss:
-    cmp x0, x1
-    b.eq _init_rust
-    stp xzr, xzr, [x0], #16 
-    b _init_bss
+/* -------------------------------------------------------
+   Boot core path
+------------------------------------------------------- */
 
-_init_rust:
-    // set the stack pointer to stack initialized in linker.ld, 0x80000 bytes
-    ADR_REL x0, __boot_core_stack_end_exclusive
-    mov sp, x0
-    bl kmain
+boot_core:
 
-_halt:
-	wfe
-	b _halt
+    // Zero BSS
+    adrp    x0, __bss_start
+    add     x0, x0, :lo12:__bss_start
+
+    adrp    x1, __bss_end_exclusive
+    add     x1, x1, :lo12:__bss_end_exclusive
+
+zero_bss:
+    cmp     x0, x1
+    b.hs    init_rust
+
+    stp     xzr, xzr, [x0], #16
+    b       zero_bss
 
 
+init_rust:
 
-.size	_start, . - _start
-.type	_start, function
-.global	_start
+    // Setup boot stack
+    adrp    x0, __boot_core_stack_end_exclusive
+    add     x0, x0, :lo12:__boot_core_stack_end_exclusive
+    mov     sp, x0
+
+    bl      system_main
+
+halt:
+    wfe
+    b       halt
+
+
+/* -------------------------------------------------------
+   Secondary core mailbox wait
+------------------------------------------------------- */
+
+secondary_wait:
+
+.global wait_loop
+wait_loop:
+	mrs x2, MPIDR_EL1
+	and x2, x2, #0xFF          // Aff0 = core id
+    // Load base of mailbox array
+    adrp    x1, core_mailbox
+    add     x1, x1, :lo12:core_mailbox
+
+    // Compute &core_mailbox[core_id]
+    mov     x3, #CPUINFO_SIZE
+    madd    x3, x2, x3, x1
+
+    // Read ready flag
+    ldr     x4, [x3, #CPUINFO_READY_OFF]
+    cbnz    x4, secondary_go
+
+    wfe
+    b       wait_loop
+
+secondary_go:
+
+    // Ensure visibility of sp + goto_address
+    dmb     ish
+
+    // Load stack pointer
+    ldr     x6, [x3, #CPUINFO_SP_OFF]
+    mov     sp, x6
+
+    // Load entry address
+    ldr     x5, [x3, #CPUINFO_GOTO_OFF]
+
+    // Jump (not call)
+    br      x5
+
+
+.size _start, . - _start

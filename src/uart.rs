@@ -10,6 +10,21 @@ pub fn write_str(string: &str) {
     }
 }
 
+pub struct QemuWriter;
+
+impl QemuWriter {
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+impl core::fmt::Write for QemuWriter {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        crate::uart::write_str(s);
+        Ok(())
+    }
+}
+
 fn write_char(c: char) {
     unsafe {
         while (read_volatile(UART_FR as *const u32) & FR_BUSY) != 0 {}

@@ -6,7 +6,7 @@ KERNEL_BIN         := kernel8.img
 QEMU_BINARY        := qemu-system-aarch64
 QEMU_MACHINE_TYPE  := raspi3b
 LD_SCRIPT_PATH     := .
-QEMU_RELEASE_ARGS  := -serial stdio -display none
+QEMU_RELEASE_ARGS := -serial stdio -display none
 # QEMU_RELEASE_ARGS  := -d in_asm
 RUSTC_MISC_ARGS    := -C target-cpu=cortex-a53
 
