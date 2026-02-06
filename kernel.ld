@@ -17,6 +17,9 @@ ENTRY(__rpi_phys_binary_load_addr)
 PHDRS
 {
     segment_code PT_LOAD FLAGS(5);
+    ro_data PT_LOAD FLAGS(4);
+    data PT_LOAD FLAGS(6);
+
 }
 
 SECTIONS
@@ -38,7 +41,7 @@ SECTIONS
     .rodata :
     {
         *(.rodata*)
-    } :segment_code
+    } :ro_data
 
     /***********************************************************************************************
     * Data
@@ -46,7 +49,7 @@ SECTIONS
     .data :
     {
         *(.data*)
-    } :segment_code
+    } :data
 
     /***********************************************************************************************
     * BSS + stack (no load)
@@ -55,12 +58,13 @@ SECTIONS
     {
         __bss_start = .;
         *(.bss*)
-        *(.sbss*)
-        __bss_end_exclusive = .;
 
         . = ALIGN(16);
         __boot_core_stack_start = .;
-        . = . + 0x80000;
+        . = . + 0x80000; // 512 KB for boot core's stack
         __boot_core_stack_end_exclusive = .;
-    }
+        //TODO: do we need to include small stack
+        __bss_end_exclusive = .;
+    }: data
+
 }
